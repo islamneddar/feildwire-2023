@@ -10,6 +10,9 @@ import {s3StorageProvider} from '@/external-service/file-storage/file-storage-pr
 import {ImageProcessingService} from '@/external-service/image-processing/image-processing.service';
 import {sharpImageProcessingProvider} from '@/external-service/image-processing/image-processing-provider';
 import {ProjectModule} from '@/domain/project/project.module';
+import {FileUtils} from '@/utils/file.utils';
+import {FloorPlanHelper} from '@/domain/floor-plan/floor-plan.helper';
+import {FileManagementHelper} from '@/common/file-management-helper.service';
 
 @Module({
   imports: [
@@ -25,6 +28,9 @@ import {ProjectModule} from '@/domain/project/project.module';
     s3StorageProvider,
     ImageProcessingService,
     sharpImageProcessingProvider,
+    FileUtils,
+    FileManagementHelper,
+    FloorPlanHelper,
   ],
   exports: [],
 })

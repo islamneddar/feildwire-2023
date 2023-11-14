@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -15,7 +14,6 @@ import {AuthGuard} from '@/domain/auth/auth.guard';
 import {Request} from 'express';
 import {CreateProjectRequest} from '@/domain/project/project.dto';
 import {
-  ProjectAlreadyExistsException,
   ProjectForbiddenDeletionWhenFloorPlanExist,
   ProjectNotFoundException,
   ProjectWithSameNameExistsForUserException,
@@ -53,8 +51,9 @@ export class ProjectController {
   @UseGuards(AuthGuard)
   @Post('')
   async createProject(@Body() body: CreateProjectRequest, @Req() req: Request) {
+    const projectTitle = body.name.trim();
     const project = await this.projectService.getProjectByNameNotDeletedForUser(
-      body.name,
+      projectTitle,
       req.user,
     );
 
@@ -63,7 +62,7 @@ export class ProjectController {
     }
 
     const projectCreated = await this.projectService.createProject(
-      body.name,
+      projectTitle,
       req.user,
     );
 
@@ -81,9 +80,11 @@ export class ProjectController {
     @Body() body: CreateProjectRequest,
     @Req() req: Request,
   ) {
+    const projectNameFromRequest = body.name.trim();
+    const user = req.user;
     const project = await this.projectService.getProjectByIdNotDeletedForUser(
       id,
-      req.user,
+      user,
     );
 
     if (!project) {
@@ -92,15 +93,18 @@ export class ProjectController {
 
     const projectWithNameToUpdate =
       await this.projectService.getProjectByNameNotDeletedForUser(
-        body.name,
-        req.user,
+        projectNameFromRequest,
+        user,
       );
 
     if (projectWithNameToUpdate) {
       throw new ProjectWithSameNameExistsForUserException();
     }
 
-    await this.projectService.updateProjectName(project, body.name);
+    await this.projectService.updateProjectName(
+      project,
+      projectNameFromRequest,
+    );
 
     return {
       message: 'Project updated successfully',
@@ -110,9 +114,10 @@ export class ProjectController {
   @UseGuards(AuthGuard)
   @Delete(':id')
   async deleteProject(@Param('id') id: string, @Req() req: Request) {
+    const user = req.user;
     const project = await this.projectService.getProjectByIdNotDeletedForUser(
       id,
-      req.user,
+      user,
     );
 
     if (!project) {

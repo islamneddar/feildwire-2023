@@ -11,4 +11,6 @@ export interface FileStorageStrategy {
     fileName: string,
     options?: FileUploadOptions,
   ): Promise<string>;
+
+  deleteFile(url: string): Promise<void>;
 }

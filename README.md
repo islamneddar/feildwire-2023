@@ -1,74 +1,129 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+## FieldWire Backend Position Test README
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This README provides a comprehensive guide to the backend project for the software engineering position test. It includes details about the project structure, installation, running the application, API routes
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+## Project Structure
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The project adheres to a standard Nest.js application structure:
+
+- `src`: Contains the source code.
+- `src/app.module.ts`: The root module of the application.
+- `src/external-service` : Contains the code for the external service that is used to fetch the data. (image proccessing and file storage)
+
 
 ## Installation
 
-```bash
-$ yarn install
+`yarn install` to install all the dependencies
+
+`yarn migration:run` to run all the migration to have the schema of the database
+
+`yarn build` to build the project
+
+`yarn start` to start the project
+
+## API Routes
+
+### POST /auth/login
+
+``` 
+curl --location 'localhost:8080/auth/login' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+"email" : "test@email.com",
+"password" : "test.123"
+}'`
 ```
 
-## Running the app
+### POST /auth/signup
 
-```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+```
+curl --location 'localhost:8080/auth/signup' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+"email" : "test@email.com",
+"password" : "test.123",
+}'
 ```
 
-## Test
+### POST /project
 
-```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+```
+curl --location 'localhost:8080/project/' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk' \
+--data '{
+    "name" : "project test"
+}'
 ```
 
-## Support
+### GET /project
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```
+curl --location 'localhost:8080/project' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk'
+```
 
-## Stay in touch
+### GET /project/:id
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```
+curl --location 'localhost:8080/project/dfd7e15e-1eeb-4e26-a334-3fd48c5060dc' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk'
+```
 
-## License
+### PATCH /project/:id
 
-Nest is [MIT licensed](LICENSE).
-# feild-wire-test-2023
+```
+curl --location --request PATCH 'localhost:8080/project/dfd7e15e-1eeb-4e26-a334-3fd48c5060dc' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk' \
+--data '{
+    "name" : "project updatedd"
+}'
+```
+
+### DELETE /project/:id
+
+```
+curl --location --request DELETE 'localhost:8080/project/e95e1a2b-75d9-499a-aed2-6c6e87e31f56' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk'
+```
+
+### POST /floor-plan
+
+```
+curl --location 'localhost:8080/floor-plan' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk' \
+--form 'floorPlanImage='"IMG_9392.jpeg"' \
+--form 'projectId="e95e1a2b-75d9-499a-aed2-6c6e87e31f56"'
+```
+
+### GET /floor-plan/:id
+
+```
+curl --location 'localhost:8080/floor-plan/252820ff-1181-4b9c-87a9-eeba1809daa4' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk'
+```
+
+### GET /floor-plan/project/:id
+
+```
+curl --location 'localhost:8080/floor-plan/project/e95e1a2b-75d9-499a-aed2-6c6e87e31f56' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk'
+```
+
+### PATCH /floor-plan/:id
+
+```
+curl --location --request PATCH 'localhost:8080/floor-plan/8d4481cf-0865-4c42-8cb0-a7fa8873fc09' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk' \
+--form 'name="test floorplan"' \
+--form 'floorPlanImage=@"IMG_0123.jpeg"'
+```
+
+### DELETE /floor-plan/:id
+
+```
+curl --location --request DELETE 'localhost:8080/floor-plan/be0428ba-007c-41c2-acad-92d56a665251' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU4ZDdlZGMxLWQ5NjktNDA0ZS1hMmVjLTczNjZkM2Y0ODhjZSIsImVtYWlsIjoiaXNsYW0ubmVkZGFyQGdtYWlsLmNvbSIsImlhdCI6MTY5OTEyNTkxMywiZXhwIjoxNzMwNjYxOTEzfQ.xEroa2rJtfPkZSGrKRTgTIEAYEvkXhyn1a0vPwSYhSk'
+```

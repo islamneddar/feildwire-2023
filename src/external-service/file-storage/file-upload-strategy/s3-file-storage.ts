@@ -12,6 +12,7 @@ import {
   AWS_ACCESS_KEY_ID,
   AWS_BUCKET_NAME,
   AWS_S3_ENDPOINT,
+  AWS_S3_REGION,
   AWS_SECRET_ACCESS_KEY,
 } from '@/configs/env.constant';
 
@@ -20,20 +21,22 @@ export class S3FileStorageStrategy implements FileStorageStrategy {
 
   private readonly bucketName: string;
   constructor(@Inject(ConfigService) private configService: ConfigService) {
-    const awsAccessKeyId = configService.get<string>(AWS_ACCESS_KEY_ID);
-    const awsSecretAccessKey = configService.get<string>(AWS_SECRET_ACCESS_KEY);
-    const awsS3Endpoint = configService.get<string>(AWS_S3_ENDPOINT);
+    const awsAccessKeyId = configService.getOrThrow<string>(AWS_ACCESS_KEY_ID);
+    const awsSecretAccessKey = configService.getOrThrow<string>(
+      AWS_SECRET_ACCESS_KEY,
+    );
+    const awsS3Endpoint = configService.getOrThrow<string>(AWS_S3_ENDPOINT);
 
     this.s3Client = new S3({
       endpoint: awsS3Endpoint,
-      region: 'ams3',
+      region: configService.getOrThrow<string>(AWS_S3_REGION),
       credentials: {
         accessKeyId: awsAccessKeyId,
         secretAccessKey: awsSecretAccessKey,
       },
     });
 
-    this.bucketName = configService.get<string>(AWS_BUCKET_NAME);
+    this.bucketName = configService.getOrThrow<string>(AWS_BUCKET_NAME);
   }
 
   async uploadFile(file: Express.Multer.File, options?: FileUploadOptions) {
@@ -63,6 +66,15 @@ export class S3FileStorageStrategy implements FileStorageStrategy {
       fileKey,
       options.acl,
     );
+  }
+
+  async deleteFile(url: string) {
+    const s3ObjectKey = new URL(url).pathname.substring(1);
+
+    await this.s3Client.deleteObject({
+      Bucket: this.bucketName,
+      Key: s3ObjectKey,
+    });
   }
 
   private async s3Upload(

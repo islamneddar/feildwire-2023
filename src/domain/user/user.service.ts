@@ -21,11 +21,11 @@ export class UserService {
     });
   }
 
-  async createUser(params: {email: string; password: string}) {
+  async createUser(email: string, password: string) {
     const user = new UserEntity();
-    user.email = params.email;
+    user.email = email;
     user.password = await bcrypt.hash(
-      params.password,
+      password,
       Number(this.configService.getOrThrow(SALT_ROUND)),
     );
     await this.userRepository.save(user);

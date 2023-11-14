@@ -1,13 +1,11 @@
-import {
-  Body,
-  ConflictException,
-  Controller,
-  NotFoundException,
-  Post,
-} from '@nestjs/common';
+import {Body, Controller, Post} from '@nestjs/common';
 import {AuthService} from '@/domain/auth/auth.service';
 import {UserService} from '@/domain/user/user.service';
 import {LoginRequest, SignupRequest} from '@/domain/auth/auth.dto';
+import {
+  UserAlreadyExistException,
+  WrongEmailOrPasswordException,
+} from '@/domain/auth/auth.error';
 
 @Controller('auth')
 export class AuthController {
@@ -18,12 +16,13 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: LoginRequest) {
+    const email = body.email.trim().toLowerCase();
     const user = await this.userService.findOneByEmailAndPassword(
-      body.email,
+      email,
       body.password,
     );
     if (!user) {
-      throw new NotFoundException('wrong email or password');
+      throw new WrongEmailOrPasswordException();
     }
 
     const userToken = await this.authService.generateToken({
@@ -39,11 +38,12 @@ export class AuthController {
 
   @Post('signup')
   async signup(@Body() body: SignupRequest) {
-    const user = await this.userService.findOneByEmail(body.email);
+    const email = body.email.trim().toLowerCase();
+    const user = await this.userService.findOneByEmail(email);
     if (user) {
-      throw new ConflictException('user already exist');
+      throw new UserAlreadyExistException();
     }
-    await this.userService.createUser(body);
+    await this.userService.createUser(email, body.password);
     return {
       message: 'user created',
     };

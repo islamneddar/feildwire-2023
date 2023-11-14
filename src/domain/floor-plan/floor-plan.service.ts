@@ -44,4 +44,59 @@ export class FloorPlanService {
     floorPlan.project = param.project;
     return await this.floorPlanRepository.save(floorPlan);
   }
+
+  async getFloorPlanByIdNotDeletedForUser(id: string, user: UserEntity) {
+    return await this.floorPlanRepository.findOne({
+      where: {
+        floorPlanId: id,
+        project: {
+          user: {
+            userId: user.userId,
+          },
+        },
+      },
+      relations: ['project'],
+    });
+  }
+
+  async getAllFloorPlanByProjectIdForUser(projectId: string, user: UserEntity) {
+    return await this.floorPlanRepository.find({
+      where: {
+        project: {
+          projectId: projectId,
+          user: {
+            userId: user.userId,
+          },
+        },
+      },
+    });
+  }
+
+  async updateFloorPlan(
+    floorPlan: FloorPlanEntity,
+    params: {
+      name?: string;
+      imageUrl?: string;
+      thumbnailUrl?: string;
+      largeImageUrl?: string;
+    },
+  ) {
+    if (params.name) {
+      floorPlan.name = params.name;
+    }
+    if (params.imageUrl) {
+      floorPlan.imageUrl = params.imageUrl;
+    }
+    if (params.thumbnailUrl) {
+      floorPlan.thumbnailUrl = params.thumbnailUrl;
+    }
+    if (params.largeImageUrl) {
+      floorPlan.largeImageUrl = params.largeImageUrl;
+    }
+    return await this.floorPlanRepository.save(floorPlan);
+  }
+
+  async deleteFloorPlan(floorPlan: FloorPlanEntity) {
+    return await this.floorPlanRepository.delete(floorPlan.floorPlanId);
+  }
 }

@@ -15,8 +15,12 @@ export class CustomUploadFileTypeValidator extends FileValidator {
   }
 
   public isValid(file?: Express.Multer.File): boolean {
-    const response = fileType.parse(file.buffer);
-    return this.allowedMimeTypes.includes(response.mime);
+    try {
+      const response = fileType.parse(file.buffer);
+      return this.allowedMimeTypes.includes(response.mime);
+    } catch (e) {
+      return false;
+    }
   }
 
   public buildErrorMessage(): string {

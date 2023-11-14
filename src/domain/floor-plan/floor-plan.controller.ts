@@ -1,28 +1,38 @@
 import {
   Body,
   Controller,
-  HttpStatus,
-  InternalServerErrorException,
-  ParseFilePipeBuilder,
+  Delete,
+  Get,
+  Logger,
+  Param,
+  Patch,
   Post,
   Req,
+  UnprocessableEntityException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {AuthGuard} from '@/domain/auth/auth.guard';
 import {FileInterceptor} from '@nestjs/platform-express';
-import {CustomUploadFileTypeValidator} from '@/common/file-validator';
 import {Request} from 'express';
-import {CreateFloorPlanRequest} from '@/domain/floor-plan/floor-plan.dto';
-import * as Path from 'path';
+import {
+  CreateFloorPlanRequest,
+  UpdateFloorPlanRequest,
+} from '@/domain/floor-plan/floor-plan.dto';
+
 import {FloorPlanService} from '@/domain/floor-plan/floor-plan.service';
-import {FloorPlanWithSameNameExistsForUserException} from '@/domain/floor-plan/floorplan.errors';
+import {
+  FloorPlanNotFoundException,
+  FloorPlanWithSameNameExistsForUserException,
+} from '@/domain/floor-plan/floorplan.errors';
 import {FileStorageService} from '@/external-service/file-storage/file-storage.service';
 import {ImageProcessingService} from '@/external-service/image-processing/image-processing.service';
-import {ObjectCannedACL} from '@aws-sdk/client-s3';
 import {ProjectNotFoundException} from '@/domain/project/project.errors';
 import {ProjectService} from '@/domain/project/project.service';
+import {customParseFilePipe} from '@/common/file.pipe';
+import {FileUtils} from '@/utils/file.utils';
+import {FloorPlanHelper} from '@/domain/floor-plan/floor-plan.helper';
 
 const MAX_PROFILE_PICTURE_SIZE_IN_BYTES = 100 * 1024 * 1024;
 const VALID_UPLOADS_MIME_TYPES = ['image/jpeg', 'image/png'];
@@ -34,6 +44,8 @@ export class FloorPlanController {
     private fileStorageService: FileStorageService,
     private imageProcessingService: ImageProcessingService,
     private projectService: ProjectService,
+    private fileUtils: FileUtils,
+    private floorPlanHelper: FloorPlanHelper,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -43,23 +55,16 @@ export class FloorPlanController {
     @Req() req: Request,
     @Body() body: CreateFloorPlanRequest,
     @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addValidator(
-          new CustomUploadFileTypeValidator({
-            fileType: VALID_UPLOADS_MIME_TYPES,
-          }),
-        )
-        .addMaxSizeValidator({
-          maxSize: MAX_PROFILE_PICTURE_SIZE_IN_BYTES,
-        })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
+      customParseFilePipe(
+        VALID_UPLOADS_MIME_TYPES,
+        MAX_PROFILE_PICTURE_SIZE_IN_BYTES,
+        true,
+      ),
     )
     file: Express.Multer.File,
   ) {
-    const fileName = Path.parse(file.originalname).name.toLowerCase();
-    const fileExtension = Path.parse(file.originalname).ext.toLowerCase();
+    const {fileName, fileExtension} =
+      this.fileUtils.getFileNameAndFileExtensionFromFile(file);
 
     const floorPlan =
       await this.floorPlanService.getFloorPlanByNameNotDeletedForProjectIdForUser(
@@ -81,74 +86,205 @@ export class FloorPlanController {
       throw new ProjectNotFoundException();
     }
 
-    try {
-      const results = await Promise.all([
-        this.uploadFileToS3(file),
-        this.resizeImageFileAndUpload(file, 100, 100, fileName, fileExtension),
-        this.resizeImageFileAndUpload(
+    const ImagesUrlsUploaded =
+      await this.floorPlanHelper.uploadOriginalAndThumbsAndLargeFloorPlanImages(
+        file,
+        fileName,
+        fileExtension,
+        this.imageProcessingService,
+        this.fileStorageService,
+      );
+
+    const floorPlanCreated = await this.floorPlanService.createFloorPlan({
+      name: fileName,
+      originalImageUrl: ImagesUrlsUploaded[0] as string,
+      thumbnailImageUrl: ImagesUrlsUploaded[1] as string,
+      LargeImageUrl: ImagesUrlsUploaded[2] as string,
+      project,
+    });
+
+    return {
+      floorPlanId: floorPlanCreated.floorPlanId,
+      name: floorPlanCreated.name,
+    };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id')
+  async getFloorPlanByIdForUser(@Param('id') id: string, @Req() req: Request) {
+    const floorPlan =
+      await this.floorPlanService.getFloorPlanByIdNotDeletedForUser(
+        id,
+        req.user,
+      );
+
+    if (!floorPlan) {
+      throw new FloorPlanNotFoundException();
+    }
+
+    return {
+      floorPlanId: floorPlan.floorPlanId,
+      name: floorPlan.name,
+      imageUrl: floorPlan.imageUrl,
+      thumbnailUrl: floorPlan.thumbnailUrl,
+      largeImageUrl: floorPlan.largeImageUrl,
+      createdAt: floorPlan.createdAt,
+    };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/project/:projectId')
+  async getFloorPlanByProjectIdForUser(
+    @Param('projectId') projectId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user;
+    const project = await this.projectService.getProjectByIdNotDeletedForUser(
+      projectId,
+      user,
+    );
+
+    if (!project) {
+      throw new ProjectNotFoundException();
+    }
+
+    const floorPlans =
+      await this.floorPlanService.getAllFloorPlanByProjectIdForUser(
+        projectId,
+        user,
+      );
+
+    return floorPlans.map(floorPlan => ({
+      floorPlanId: floorPlan.floorPlanId,
+      name: floorPlan.name,
+      imageUrl: floorPlan.imageUrl,
+      thumbnailUrl: floorPlan.thumbnailUrl,
+      largeImageUrl: floorPlan.largeImageUrl,
+      createdAt: floorPlan.createdAt,
+    }));
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id')
+  @UseInterceptors(FileInterceptor('floorPlanImage'))
+  async updateFloorPlan(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Body() body: UpdateFloorPlanRequest,
+    @UploadedFile(
+      customParseFilePipe(
+        VALID_UPLOADS_MIME_TYPES,
+        MAX_PROFILE_PICTURE_SIZE_IN_BYTES,
+        false,
+      ),
+    )
+    file: Express.Multer.File,
+  ) {
+    if (!file && !body.name) {
+      throw new UnprocessableEntityException(
+        'You must provide either a file or a name to update the floor plan',
+      );
+    }
+    const dataToUpdateInFloorPlan = {};
+    const user = req.user;
+
+    const floorPlan =
+      await this.floorPlanService.getFloorPlanByIdNotDeletedForUser(id, user);
+
+    if (!floorPlan) {
+      throw new FloorPlanNotFoundException();
+    }
+
+    if (body.name) {
+      const name = body.name.trim();
+      const floorPlanWithSameName =
+        await this.floorPlanService.getFloorPlanByNameNotDeletedForProjectIdForUser(
+          name,
+          floorPlan.project.projectId,
+          user,
+        );
+
+      if (floorPlanWithSameName) {
+        throw new FloorPlanWithSameNameExistsForUserException();
+      }
+
+      dataToUpdateInFloorPlan['name'] = name;
+    }
+
+    if (file) {
+      const {fileName, fileExtension} =
+        this.fileUtils.getFileNameAndFileExtensionFromFile(file);
+      const uploadedImages =
+        await this.floorPlanHelper.uploadOriginalAndThumbsAndLargeFloorPlanImages(
           file,
-          2000,
-          2000,
           fileName,
           fileExtension,
-        ),
-      ]);
+          this.imageProcessingService,
+          this.fileStorageService,
+        );
 
-      const floorPlan = await this.floorPlanService.createFloorPlan({
-        name: fileName,
-        originalImageUrl: results[0] as string,
-        thumbnailImageUrl: results[1] as string,
-        LargeImageUrl: results[2] as string,
-        project,
-      });
+      const previousListImagesUrlsFloorPlan = [
+        floorPlan.imageUrl,
+        floorPlan.thumbnailUrl,
+        floorPlan.largeImageUrl,
+      ];
 
-      return {
-        floorPlanId: floorPlan.floorPlanId,
-        name: floorPlan.name,
-      };
-    } catch (e) {
-      console.log('all promise error => ', e);
-      throw new InternalServerErrorException();
-    }
-  }
-
-  private async resizeImageFileAndUpload(
-    file: Express.Multer.File,
-    width: number,
-    height: number,
-    fileName: string,
-    fileExtension: string,
-  ) {
-    try {
-      const resizedImageBuffer = await this.imageProcessingService.resizeImage(
-        file,
-        width,
-        height,
-      );
-
-      return await this.fileStorageService.uploadFileFromBuffer(
-        resizedImageBuffer,
-        `${fileName}_${width}x${height}${fileExtension}`,
-        {
-          acl: 'public-read',
-          prefixFile: 'floor-plan',
+      this.fileStorageService.deleteMultipleFilesAsynchronous(
+        previousListImagesUrlsFloorPlan,
+        () => {
+          Logger.log(
+            `${previousListImagesUrlsFloorPlan.join(',')} deleted successfully`,
+          );
+        },
+        error => {
+          // we can add a system to keep track of files not already deleted to delete them later
+          Logger.error('error in deleting files => ', error);
         },
       );
-    } catch (e) {
-      console.log('resizeImageFileAndUpload => ', e);
-      throw new InternalServerErrorException();
+
+      dataToUpdateInFloorPlan['imageUrl'] = uploadedImages[0] as string;
+      dataToUpdateInFloorPlan['thumbnailUrl'] = uploadedImages[1] as string;
+      dataToUpdateInFloorPlan['largeImageUrl'] = uploadedImages[2] as string;
     }
+
+    await this.floorPlanService.updateFloorPlan(floorPlan, {
+      ...dataToUpdateInFloorPlan,
+    });
+
+    return {
+      floorPlanId: floorPlan.floorPlanId,
+      name: floorPlan.name,
+    };
   }
 
-  private async uploadFileToS3(file: Express.Multer.File): Promise<string> {
-    try {
-      return await this.fileStorageService.uploadFile(file, {
-        acl: ObjectCannedACL.public_read,
-        prefixFile: `floor-plan`,
-      });
-    } catch (error) {
-      console.error(`Upload file error: ${error}`);
-      throw new InternalServerErrorException();
+  @UseGuards(AuthGuard)
+  @Delete(':id')
+  async deleteFloorPlan(@Param('id') id: string, @Req() req: Request) {
+    const user = req.user;
+    const floorPlan =
+      await this.floorPlanService.getFloorPlanByIdNotDeletedForUser(id, user);
+
+    if (!floorPlan) {
+      throw new FloorPlanNotFoundException();
     }
+
+    const {imageUrl, thumbnailUrl, largeImageUrl} = floorPlan;
+    const listImagesUrlsFloorPlan = [imageUrl, thumbnailUrl, largeImageUrl];
+    this.fileStorageService.deleteMultipleFilesAsynchronous(
+      listImagesUrlsFloorPlan,
+      () => {
+        Logger.log(`${listImagesUrlsFloorPlan.join(',')} deleted successfully`);
+      },
+      error => {
+        // we can add a system to keep track of files not already deleted to delete them later
+        Logger.error('error in deleting files => ', error);
+      },
+    );
+
+    await this.floorPlanService.deleteFloorPlan(floorPlan);
+
+    return {
+      message: 'Floor plan deleted successfully',
+    };
   }
 }
