@@ -1,13 +1,14 @@
 import {
   Column,
   Entity,
-  OneToOne,
   PrimaryGeneratedColumn,
   JoinColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import {BaseTable} from '@/database/base-table.entity';
 import {ProjectEntity} from '@/domain/project/project.entity';
+import {FloorPlanVersionEntity} from '@/domain/floor-plan-version/floor-plan-version.entity';
 
 @Entity({name: 'floor_plans'})
 export class FloorPlanEntity extends BaseTable {
@@ -45,4 +46,10 @@ export class FloorPlanEntity extends BaseTable {
   })
   @JoinColumn({name: 'project_id'})
   project: ProjectEntity;
+
+  @OneToMany(
+    () => FloorPlanVersionEntity,
+    floorPlanVersion => floorPlanVersion.floorPlan,
+  )
+  floorPlanVersions: FloorPlanVersionEntity[];
 }

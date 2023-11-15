@@ -3,12 +3,13 @@ import {FloorPlanEntity} from '@/domain/floor-plan/floor-plan.entity';
 import {InjectRepository} from '@nestjs/typeorm';
 import {UserEntity} from '@/domain/user/user.entity';
 import {ProjectEntity} from '@/domain/project/project.entity';
+import {Repository} from 'typeorm';
 
 @Injectable()
 export class FloorPlanService {
   constructor(
     @InjectRepository(FloorPlanEntity)
-    private readonly floorPlanRepository: typeof FloorPlanEntity,
+    private readonly floorPlanRepository: Repository<FloorPlanEntity>,
   ) {}
 
   async getFloorPlanByNameNotDeletedForProjectIdForUser(

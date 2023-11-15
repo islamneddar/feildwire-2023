@@ -13,10 +13,12 @@ import {ProjectModule} from '@/domain/project/project.module';
 import {FileUtils} from '@/utils/file.utils';
 import {FloorPlanHelper} from '@/domain/floor-plan/floor-plan.helper';
 import {FileManagementHelper} from '@/common/file-management-helper.service';
+import {FloorPlanVersionService} from '@/domain/floor-plan-version/floor-plan-version.service';
+import {FloorPlanVersionEntity} from '@/domain/floor-plan-version/floor-plan-version.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([FloorPlanEntity]),
+    TypeOrmModule.forFeature([FloorPlanEntity, FloorPlanVersionEntity]),
     AuthModule,
     UserModule,
     ProjectModule,
@@ -31,6 +33,7 @@ import {FileManagementHelper} from '@/common/file-management-helper.service';
     FileUtils,
     FileManagementHelper,
     FloorPlanHelper,
+    FloorPlanVersionService,
   ],
   exports: [],
 })

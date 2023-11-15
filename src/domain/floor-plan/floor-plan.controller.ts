@@ -33,9 +33,11 @@ import {ProjectService} from '@/domain/project/project.service';
 import {customParseFilePipe} from '@/common/file.pipe';
 import {FileUtils} from '@/utils/file.utils';
 import {FloorPlanHelper} from '@/domain/floor-plan/floor-plan.helper';
-
-const MAX_PROFILE_PICTURE_SIZE_IN_BYTES = 100 * 1024 * 1024;
-const VALID_UPLOADS_MIME_TYPES = ['image/jpeg', 'image/png'];
+import {
+  MAX_PROFILE_PICTURE_SIZE_IN_BYTES,
+  VALID_UPLOADS_MIME_TYPES,
+} from '@/common/floor-plans.constants';
+import {FloorPlanVersionService} from '@/domain/floor-plan-version/floor-plan-version.service';
 
 @Controller('floor-plan')
 export class FloorPlanController {
@@ -46,6 +48,7 @@ export class FloorPlanController {
     private projectService: ProjectService,
     private fileUtils: FileUtils,
     private floorPlanHelper: FloorPlanHelper,
+    private floorPlanVersionService: FloorPlanVersionService,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -101,6 +104,14 @@ export class FloorPlanController {
       thumbnailImageUrl: ImagesUrlsUploaded[1] as string,
       LargeImageUrl: ImagesUrlsUploaded[2] as string,
       project,
+    });
+
+    await this.floorPlanVersionService.createFloorPlanVersion({
+      floorPlan: floorPlanCreated,
+      imageUrl: ImagesUrlsUploaded[0],
+      thumbnailUrl: ImagesUrlsUploaded[1],
+      largeImageUrl: ImagesUrlsUploaded[2],
+      versionNumber: 1,
     });
 
     return {
